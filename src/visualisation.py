@@ -1,8 +1,11 @@
 import os
-from constants import *
+import cv2 as cv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+from constants import *
+from general_utility import *
 
 def print_square_info():
     train_notation_files = [file for file in os.listdir(TRAIN_DIR) if os.path.splitext(file)[1] == ".txt"]
@@ -50,3 +53,30 @@ def print_square_info():
         plt.xlabel("Ratio Value")
         plt.ylabel("Frequency")
         plt.show()
+
+def print_img(img):
+    cv.imshow('Image', img)
+    cv.waitKey(0)  # Wait for a key press
+    cv.destroyAllWindows()
+
+def inspect_photos():
+    for character in CHARACTERS[:4]:
+        for i in range(NR_CHARACTER_PHOTOS):
+            read_photo(i, character)    
+
+def get_avg_variance():
+    all = 0
+    avg_var = 0
+    lowest_var = np.Infinity
+    for character in CHARACTERS:
+        face_names = os.listdir(os.path.join(FACES_DIR, character))
+        for face_name in face_names:
+            face = cv.imread(os.path.join(os.path.join(FACES_DIR, character), face_name))
+            var = np.var(face)
+            avg_var += var
+            all += 1
+            if lowest_var > var:
+                lowest_var = var
+    
+    print(f"lowest var: {lowest_var}, avg_var: {avg_var/all}, photos checked: {all}")
+
