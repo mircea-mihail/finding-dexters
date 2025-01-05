@@ -5,7 +5,6 @@ class dexter:
 
     width_hog_cell = 8
     height_hog_cell = 7
-    dim_window = width_hog_cell * height_hog_cell
     
     face_dir = "dexter"
 
@@ -17,7 +16,6 @@ class deedee:
 
     width_hog_cell = 11
     height_hog_cell = 8
-    dim_window = width_hog_cell * height_hog_cell
     
     face_dir = "deedee"
 
@@ -27,7 +25,6 @@ class dad:
 
     width_hog_cell = 8
     height_hog_cell = 11
-    dim_window = width_hog_cell * height_hog_cell
     
     descriptors = 5
     width = width_hog_cell * descriptors
@@ -40,7 +37,6 @@ class mom:
 
     width_hog_cell = 6
     height_hog_cell = 6
-    dim_window = width_hog_cell * height_hog_cell
     
     descriptors = 6
     width = width_hog_cell * descriptors
@@ -53,7 +49,6 @@ class unknown:
 
     width_hog_cell = 6
     height_hog_cell = 6
-    dim_window = width_hog_cell * height_hog_cell
     
     descriptors = 6
     width = width_hog_cell * descriptors
@@ -66,7 +61,6 @@ class all:
 
     width_hog_cell = 6
     height_hog_cell = 6
-    dim_window = width_hog_cell * height_hog_cell
     
     descriptors = 6
     width = width_hog_cell * descriptors

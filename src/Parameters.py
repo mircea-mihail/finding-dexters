@@ -30,7 +30,3 @@ class Parameters:
         self.number_negative_examples = 10000  # numarul exemplelor negative
         self.has_annotations = False
         self.threshold = 0
-
-        # obsolete
-        self.dim_hog_cell = 6  # dimensiunea celulei
-        self.dim_window = 36  # exemplele pozitive (fete de oameni cropate) au 36x36 pixeli

@@ -134,9 +134,9 @@ def generate_negative_rectangle(rows, character_dir, min_variance):
 def build_negatives():
     success = 0
     all = 0
-    min_variance = LOWEST_FACE_VARIANCE / 2
+    min_variance = 0
 
-    for _ in range(5):
+    for _ in range(4):
         for character in CHARACTERS[:4]:
             for i in range(NR_CHARACTER_PHOTOS):
                 rows = get_photo_rows(character, f"{i+1:04d}.jpg")
@@ -147,6 +147,6 @@ def build_negatives():
                     neg_ex = img[rect_points[0][1]:rect_points[1][1], rect_points[0][0]:rect_points[1][0]]
                     cv.imwrite(os.path.join(NEGATIVE_DIR, f"{success:04d}.png"), neg_ex)
                     success += 1
-        min_variance += LOWEST_FACE_VARIANCE/2 
+        min_variance += LOWEST_FACE_VARIANCE
 
         print(f"accepted ratio: {success / all}, successes: {success}")

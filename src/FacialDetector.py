@@ -88,8 +88,8 @@ class FacialDetector:
         return negative_descriptors
 
     def train_classifier(self, training_examples, train_labels):
-        svm_file_name = os.path.join(self.params.dir_save_files, 'best_model_%d_%d_%d' %
-                                     (self.params.dim_hog_cell, self.params.number_negative_examples,
+        svm_file_name = os.path.join(self.params.dir_save_files, 'best_model_%d_%d_%d_%d' %
+                                     (self.params.hog_cell_width, self.params.hog_cell_height, self.params.number_negative_examples,
                                       self.params.number_positive_examples))
         if os.path.exists(svm_file_name):
             self.best_model = pickle.load(open(svm_file_name, 'rb'))
@@ -208,36 +208,35 @@ class FacialDetector:
         w = self.best_model.coef_.T
         bias = self.best_model.intercept_[0]
         num_test_images = len(test_files)
-        descriptors_to_return = []
         for i in range(num_test_images):
             start_time = timeit.default_timer()
             print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
             img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
-            # img = cv.resize(img, (0, 0), fx=0.5, fy=0.5)
             # TODO: completati codul functiei in continuare
 
             image_detections = []
             image_scores = []
 
-            hog_descriptor = hog(img, pixels_per_cell=(self.params.dim_hog_cell, self.params.dim_hog_cell),
+            hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
                            cells_per_block=(2, 2), feature_vector=False)
 
-            num_rows = img.shape[0]//self.params.dim_hog_cell - 1 # nu vreau sa ajung pe ultima celula
-            num_cols = img.shape[1]//self.params.dim_hog_cell - 1
+            num_rows = img.shape[0]//self.params.hog_cell_height - 1 # nu vreau sa ajung pe ultima celula
+            num_cols = img.shape[1]//self.params.hog_cell_width - 1
 
             #calculez din cate in cate celule sar
-            num_cell = self.params.dim_window // self.params.dim_hog_cell - 1
+            num_cell_rows = self.params.window_height // self.params.hog_cell_height- 1
+            num_cell_cols = self.params.window_width // self.params.hog_cell_width - 1
 
-            for y in range(0, num_rows - num_cell):
-                for x in range(0, num_cols - num_cell):
+            for y in range(0, num_rows - num_cell_rows):
+                for x in range(0, num_cols - num_cell_cols):
                     # e in forma matriceala (modelul stie doar flat) asa ca fac flatten
-                    descr = hog_descriptor[y:y+num_cell, x:x+num_cell].flatten()
+                    descr = hog_descriptor[y:y+num_cell_rows, x:x+num_cell_cols].flatten()
                     score = np.dot(descr, w)[0]+bias
                     if score > self.params.threshold:
-                        x_min = int(x * self.params.dim_hog_cell)
-                        y_min = int(y * self.params.dim_hog_cell)
-                        x_max = int(x * self.params.dim_hog_cell + self.params.dim_window)
-                        y_max = int(y * self.params.dim_hog_cell + self.params.dim_window)
+                        x_min = int(x * self.params.hog_cell_width)
+                        y_min = int(y * self.params.hog_cell_height)
+                        x_max = int(x * self.params.hog_cell_width + self.params.window_width)
+                        y_max = int(y * self.params.hog_cell_height + self.params.window_height)
                         
                         image_detections.append([x_min, y_min, x_max, y_max])
                         image_scores.append(score)
@@ -322,6 +321,6 @@ class FacialDetector:
         plt.plot(rec, prec, '-')
         plt.xlabel('Recall')
         plt.ylabel('Precision')
-        plt.title('Average precision %.3f' % average_precision)
+        plt.title('Average precision %.6f' % average_precision)
         plt.savefig(os.path.join(self.params.dir_save_files, 'precizie_medie.png'))
         plt.show()
