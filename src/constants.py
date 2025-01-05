@@ -4,6 +4,11 @@ TRAIN_DIR = "../antrenare"
 
 FACES_DIR = os.path.join(TRAIN_DIR, "faces")
 NEGATIVE_DIR = os.path.join(TRAIN_DIR, "negatives")
+IMPORTANT_FILES_DIR = "../important_files"
+SMALL_SET_DIR = os.path.join(FACES_DIR, "small_set")
+BIG_SET_DIR = os.path.join(FACES_DIR, "all")
+FAKE_TEST_DIR = "../evaluare/fake_test"
+VALIDATION_DIR = "../validare/"
 
 CHARACTERS = ["dexter", "deedee", "dad", "mom", "unknown"]
 

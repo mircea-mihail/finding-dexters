@@ -2,6 +2,7 @@ import cv2 as cv
 import random
 import time
 import numpy as np
+import shutil
 
 from general_utility import *
 from character_classes import *
@@ -66,6 +67,19 @@ def build_unknown_positives():
         cv.imwrite(os.path.join(os.path.join(FACES_DIR, unknown.face_dir), f"{img_idx:04d}.png"), downscaled)
         img_idx += 1
 
+def build_all_square_positives():
+    img_idx = 0
+    for character in CHARACTERS:
+        rows = get_character_rows(character)
+        for row in rows:
+            img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, row[6]), row[0]))
+            width = get_width(row)
+            height = int(width / all.xy_ratio)
+            trimmed = img[row[2]:row[2]+height, row[1]:row[3]]
+            downscaled = cv.resize(trimmed, (all.width, all.height))
+            cv.imwrite(os.path.join(os.path.join(FACES_DIR, all.face_dir), f"{img_idx:04d}.png"), downscaled)
+            img_idx += 1
+
 def build_positives():
     build_deedee_positives()
     build_dexter_positives()
@@ -73,7 +87,14 @@ def build_positives():
     build_mom_positives()
     build_unknown_positives()
 
-def generate_negative_rectangle(rows, character_dir):
+def get_small_dataset():
+    file_nr=  0
+    files = os.listdir(os.path.join(FACES_DIR, all.face_dir))
+    files.sort()
+    for i in range(0, len(files), 60):
+        shutil.copy(os.path.join(os.path.join(FACES_DIR, all.face_dir), files[i]), os.path.join(SMALL_SET_DIR, files[i]))
+
+def generate_negative_rectangle(rows, character_dir, min_variance):
     random.seed(time.time())
 
     img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, character_dir), rows[0][0]))
@@ -86,7 +107,7 @@ def generate_negative_rectangle(rows, character_dir):
         rect_points = (x1, y1), (x2, y2)
 
         neg_ex = img[rect_points[0][1]:rect_points[1][1], rect_points[0][0]:rect_points[1][0]]
-        if(np.var(neg_ex) < AVG_FACE_VARIANCE):
+        if(np.var(neg_ex) < min_variance):
             continue
 
         for row in rows:
@@ -113,16 +134,19 @@ def generate_negative_rectangle(rows, character_dir):
 def build_negatives():
     success = 0
     all = 0
+    min_variance = LOWEST_FACE_VARIANCE / 2
 
-    for character in CHARACTERS[:4]:
-        for i in range(NR_CHARACTER_PHOTOS):
-            rows = get_photo_rows(character, f"{i+1:04d}.jpg")
-            all += 1
-            img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, character), rows[0][0]))
-            rect_points = generate_negative_rectangle(rows, character)
-            if(rect_points != ((0, 0), (0, 0))):
-                neg_ex = img[rect_points[0][1]:rect_points[1][1], rect_points[0][0]:rect_points[1][0]]
-                cv.imwrite(os.path.join(NEGATIVE_DIR, f"{success:04d}.png"), neg_ex)
-                success += 1
+    for _ in range(5):
+        for character in CHARACTERS[:4]:
+            for i in range(NR_CHARACTER_PHOTOS):
+                rows = get_photo_rows(character, f"{i+1:04d}.jpg")
+                all += 1
+                img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, character), rows[0][0]))
+                rect_points = generate_negative_rectangle(rows, character, min_variance)
+                if(rect_points != ((0, 0), (0, 0))):
+                    neg_ex = img[rect_points[0][1]:rect_points[1][1], rect_points[0][0]:rect_points[1][0]]
+                    cv.imwrite(os.path.join(NEGATIVE_DIR, f"{success:04d}.png"), neg_ex)
+                    success += 1
+        min_variance += LOWEST_FACE_VARIANCE/2 
 
-    print(f"accepted ratio: {success / all}, successes: {success}")
+        print(f"accepted ratio: {success / all}, successes: {success}")

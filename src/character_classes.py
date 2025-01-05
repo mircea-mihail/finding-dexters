@@ -61,3 +61,17 @@ class unknown:
    
     face_dir = "unknown"
 
+class all:
+    xy_ratio = 1
+
+    width_hog_cell = 6
+    height_hog_cell = 6
+    dim_window = width_hog_cell * height_hog_cell
+    
+    descriptors = 6
+    width = width_hog_cell * descriptors
+    height = height_hog_cell * descriptors
+   
+    face_dir = "all"
+
+

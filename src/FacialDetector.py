@@ -24,22 +24,21 @@ class FacialDetector:
         # iar D - dimensiunea descriptorului
         # D = (params.dim_window/params.dim_hog_cell - 1) ^ 2 * params.dim_descriptor_cell (fetele sunt patrate)
 
-        images_path = os.path.join(self.params.dir_pos_examples, '*.jpg')
+        images_path = os.path.join(self.params.dir_pos_examples, '*.png')
         files = glob.glob(images_path)
         num_images = len(files)
         positive_descriptors = []
-        print('Calculam descriptorii pt %d imagini pozitive...' % num_images)
+        print('computing descriptors for %d positive images...' % num_images)
         for i in range(num_images):
-            print('Procesam exemplul pozitiv numarul %d...' % i)
+            # print('processing positive example %d...' % i)
             img = cv.imread(files[i], cv.IMREAD_GRAYSCALE)
             # TODO: sterge
-            features = hog(img, pixels_per_cell=(self.params.dim_hog_cell, self.params.dim_hog_cell),
+            features = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
                            cells_per_block=(2, 2), feature_vector=True)
-            print(len(features))
 
             positive_descriptors.append(features)
             if self.params.use_flip_images:
-                features = hog(np.fliplr(img), pixels_per_cell=(self.params.dim_hog_cell, self.params.dim_hog_cell),
+                features = hog(np.fliplr(img), pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
                                cells_per_block=(2, 2), feature_vector=True)
                 positive_descriptors.append(features)
 
@@ -55,26 +54,35 @@ class FacialDetector:
         # de exemple negative, din fiecare imagine vom genera aleator self.params.number_negative_examples // 274
         # patch-uri de dimensiune 36x36 pe care le vom considera exemple negative
 
-        images_path = os.path.join(self.params.dir_neg_examples, '*.jpg')
+        images_path = os.path.join(self.params.dir_neg_examples, '*.png')
         files = glob.glob(images_path)
         num_images = len(files)
         num_negative_per_image = self.params.number_negative_examples // num_images
         negative_descriptors = []
-        print('Calculam descriptorii pt %d imagini negative' % num_images)
+        print('computing negative descriptors for %d negative images' % num_images)
         for i in range(num_images):
-            print('Procesam exemplul negativ numarul %d...' % i)
+            # print('Procesam exemplul negativ numarul %d...' % i)
             img = cv.imread(files[i], cv.IMREAD_GRAYSCALE)
             # TODO: completati codul functiei in continuare
-            num_rows = img.shape[0]
-            num_cols = img.shape[1]
-            x = np.random.randint(low=0, high=num_cols - self.params.dim_window, size=num_negative_per_image)
-            y = np.random.randint(low=0, high=num_rows - self.params.dim_window, size=num_negative_per_image)
+            # num_rows = img.shape[0]
+            # num_cols = img.shape[1]
+            # x = np.random.randint(low=0, high=num_cols - self.params.dim_window, size=num_negative_per_image)
+            # y = np.random.randint(low=0, high=num_rows - self.params.dim_window, size=num_negative_per_image)
 
-            for idx in range(len(y)):
-                patch = img[y[idx]: y[idx] + self.params.dim_window, x[idx]: x[idx] + self.params.dim_window]
-                descr = hog(patch, pixels_per_cell=(self.params.dim_hog_cell, self.params.dim_hog_cell),
-                            cells_per_block=(2, 2), feature_vector=False)
-                negative_descriptors.append(descr.flatten())
+            neg_height = img.shape[0]
+            neg_width = img.shape[1]
+
+            if self.params.window_width / self.params.window_height > neg_width / neg_height:
+                neg_height = int(np.floor(neg_width * self.params.window_height / self.params.window_width))
+            else:
+                neg_width = int(np.floor(neg_height * self.params.window_width / self.params.window_height))
+
+            patch = img[:neg_height, :neg_width]
+            patch = cv.resize(patch, (self.params.window_width, self.params.window_height))
+
+            descr = hog(patch, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
+                        cells_per_block=(2, 2), feature_vector=False)
+            negative_descriptors.append(descr.flatten())
 
         negative_descriptors = np.array(negative_descriptors)
         return negative_descriptors
@@ -93,7 +101,7 @@ class FacialDetector:
         Cs = [10 ** -5, 10 ** -4,  10 ** -3,  10 ** -2, 10 ** -1, 10 ** 0]
         for c in Cs:
             print('Antrenam un clasificator pentru c=%f' % c)
-            model = LinearSVC(C=c)
+            model = LinearSVC(C=c, dual=True)
             model.fit(training_examples, train_labels)
             acc = model.score(training_examples, train_labels)
             print(acc)
@@ -205,6 +213,7 @@ class FacialDetector:
             start_time = timeit.default_timer()
             print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
             img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
+            # img = cv.resize(img, (0, 0), fx=0.5, fy=0.5)
             # TODO: completati codul functiei in continuare
 
             image_detections = []
