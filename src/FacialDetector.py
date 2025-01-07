@@ -16,7 +16,7 @@ from visualisation import *
 class FacialDetector:
     def __init__(self, params:Parameters):
         self.params = params
-        self.best_model = None
+        self.best_models = []
 
     def get_positive_descriptors(self, ratio_idx):
         # in aceasta functie calculam descriptorii pozitivi
@@ -47,7 +47,7 @@ class FacialDetector:
         positive_descriptors = np.array(positive_descriptors)
         return positive_descriptors
 
-    def get_negative_descriptors(self):
+    def get_negative_descriptors(self, ratio_idx):
         # in aceasta functie calculam descriptorii negativi
         # vom returna un numpy array de dimensiuni NXD
         # unde N - numar exemplelor negative
@@ -62,6 +62,7 @@ class FacialDetector:
 
         negative_descriptors = []
         print('computing negative descriptors for %d negative images' % num_images)
+        
         for i in range(num_images):
             # print('Procesam exemplul negativ numarul %d...' % i)
             img = cv.imread(files[i], cv.IMREAD_GRAYSCALE)
@@ -69,27 +70,27 @@ class FacialDetector:
             neg_height = img.shape[0]
             neg_width = img.shape[1]
 
-            if self.params.window_width / self.params.window_height > neg_width / neg_height:
-                neg_height = int(np.floor(neg_width * self.params.window_height / self.params.window_width))
+            if self.params.window_widths[ratio_idx] / self.params.window_heights[ratio_idx] > neg_width / neg_height:
+                neg_height = int(np.floor(neg_width * self.params.window_heights[ratio_idx] / self.params.window_widths[ratio_idx]))
             else:
-                neg_width = int(np.floor(neg_height * self.params.window_width / self.params.window_height))
+                neg_width = int(np.floor(neg_height * self.params.window_widths[ratio_idx] / self.params.window_heights[ratio_idx]))
 
             patch = img[:neg_height, :neg_width]
-            patch = cv.resize(patch, (self.params.window_width, self.params.window_height))
+            patch = cv.resize(patch, (self.params.window_widths[ratio_idx], self.params.window_heights[ratio_idx]))
 
-            descr = hog(patch, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
+            descr = hog(patch, pixels_per_cell=(self.params.hog_cell_heights[ratio_idx], self.params.hog_cell_widths[ratio_idx]),
                         cells_per_block=(2, 2), feature_vector=False)
             negative_descriptors.append(descr.flatten())
 
         negative_descriptors = np.array(negative_descriptors)
         return negative_descriptors
 
-    def train_classifier(self, training_examples, train_labels):
+    def train_classifier(self, training_examples, train_labels, classifier_idx):
         svm_file_name = os.path.join(self.params.dir_save_files, 'best_model_%dX%d_%d_%d_%d' %
-                                     (self.params.hog_cell_width, self.params.hog_cell_height, self.params.descriptors,
-                                      self.params.number_negative_examples, self.params.number_positive_examples))
+                                     (self.params.hog_cell_widths[classifier_idx], self.params.hog_cell_heights[classifier_idx], self.params.descriptors[classifier_idx],
+                                      self.params.number_negative_examples, self.params.number_positive_examples[classifier_idx]))
         if os.path.exists(svm_file_name):
-            self.best_model = pickle.load(open(svm_file_name, 'rb'))
+            self.best_models.append(pickle.load(open(svm_file_name, 'rb')))
             return
 
         best_accuracy = 0
@@ -114,7 +115,7 @@ class FacialDetector:
         # vizualizeaza cat de bine sunt separate exemplele pozitive de cele negative dupa antrenare
         # ideal ar fi ca exemplele pozitive sa primeasca scoruri > 0, iar exemplele negative sa primeasca scoruri < 0
         scores = best_model.decision_function(training_examples)
-        self.best_model = best_model
+        self.best_models.append(best_model)
         positive_scores = scores[train_labels > 0]
         negative_scores = scores[train_labels <= 0]
 
@@ -169,7 +170,7 @@ class FacialDetector:
         sorted_scores = image_scores[sorted_indices]
 
         is_maximal = np.ones(len(image_detections)).astype(bool)
-        iou_threshold = 0.3
+        iou_threshold = self.params.overlap
         for i in range(len(sorted_image_detections) - 1):
             if is_maximal[i] == True:  # don't change to 'is True' because is a numpy True and is not a python True :)
                 for j in range(i + 1, len(sorted_image_detections)):
@@ -205,8 +206,8 @@ class FacialDetector:
         scores = np.array([])  # array cu toate scorurile pe care le obtinem
         file_names = np.array([])  # array cu fisiele, in aceasta lista fisierele vor aparea de mai multe ori, pentru fiecare
         # detectie din imagine, numele imaginii va aparea in aceasta lista
-        w = self.best_model.coef_.T
-        bias = self.best_model.intercept_[0]
+        w_s = [best_model.coef_.T for best_model in self.best_models]
+        biases = [best_model.intercept_[0] for best_model in self.best_models]
         num_test_images = len(test_files)
 
         sizes_to_try = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
@@ -219,33 +220,34 @@ class FacialDetector:
             image_scores = []
 
             for size in sizes_to_try:
-                img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
-                img = cv.resize(img, (0, 0), fx=size, fy=size)
-                # TODO: completati codul functiei in continuare
+                for shape_idx in range(len(self.params.descriptors)):
+                    img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
+                    img = cv.resize(img, (0, 0), fx=size, fy=size)
+                    # TODO: completati codul functiei in continuare
 
-                hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
-                            cells_per_block=(2, 2), feature_vector=False)
+                    hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_heights[shape_idx], self.params.hog_cell_widths[shape_idx]),
+                                cells_per_block=(2, 2), feature_vector=False)
 
-                num_rows = img.shape[0]//self.params.hog_cell_height - 1 # nu vreau sa ajung pe ultima celula
-                num_cols = img.shape[1]//self.params.hog_cell_width - 1
+                    num_rows = img.shape[0]//self.params.hog_cell_heights[shape_idx] - 1 # nu vreau sa ajung pe ultima celula
+                    num_cols = img.shape[1]//self.params.hog_cell_widths[shape_idx] - 1
 
-                #calculez din cate in cate celule sar
-                num_cell_rows = self.params.window_height // self.params.hog_cell_height- 1
-                num_cell_cols = self.params.window_width // self.params.hog_cell_width - 1
+                    #calculez din cate in cate celule sar
+                    num_cell_rows = self.params.window_heights[shape_idx] // self.params.hog_cell_heights[shape_idx] - 1
+                    num_cell_cols = self.params.window_widths[shape_idx]  // self.params.hog_cell_widths[shape_idx] - 1
 
-                for y in range(0, num_rows - num_cell_rows):
-                    for x in range(0, num_cols - num_cell_cols):
-                        # e in forma matriceala (modelul stie doar flat) asa ca fac flatten
-                        descr = hog_descriptor[y:y+num_cell_rows, x:x+num_cell_cols].flatten()
-                        score = np.dot(descr, w)[0]+bias
-                        if score > self.params.threshold:
-                            x_min = int(round(x * self.params.hog_cell_width / size))
-                            y_min = int(round(y * self.params.hog_cell_height / size))
-                            x_max = int(round((x * self.params.hog_cell_width + self.params.window_width) / size))
-                            y_max = int(round((y * self.params.hog_cell_height + self.params.window_height) / size))
-                           
-                            image_detections.append([int(x_min), int(y_min), int(x_max), int(y_max)])
-                            image_scores.append(score)
+                    for y in range(0, num_rows - num_cell_rows):
+                        for x in range(0, num_cols - num_cell_cols):
+                            # e in forma matriceala (modelul stie doar flat) asa ca fac flatten
+                            descr = hog_descriptor[y:y+num_cell_rows, x:x+num_cell_cols].flatten()
+                            score = np.dot(descr, w_s[shape_idx])[0]+biases[shape_idx]
+                            if score > self.params.threshold:
+                                x_min = int(round(x * self.params.hog_cell_widths[shape_idx] / size))
+                                y_min = int(round(y * self.params.hog_cell_heights[shape_idx] / size))
+                                x_max = int(round((x * self.params.hog_cell_widths[shape_idx] + self.params.window_widths[shape_idx]) / size))
+                                y_max = int(round((y * self.params.hog_cell_heights[shape_idx] + self.params.window_heights[shape_idx]) / size))
+                            
+                                image_detections.append([int(x_min), int(y_min), int(x_max), int(y_max)])
+                                image_scores.append(score)
                                 
             if len(image_scores) > 0:
                 image_detections, image_scores = self.non_maximal_suppression(np.array(image_detections), np.array(image_scores), img.shape)

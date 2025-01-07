@@ -14,9 +14,12 @@ ALL_FACES_DIR = "all/"
 CHARACTERS = ["dexter", "deedee", "dad", "mom", "unknown"]
 SHAPES_IN_ALL = 6
 
-ALL_DESCRIPTORS_WIDTH = [3, 4, 9, 8, 8, 9]
-ALL_DESCRIPTORS_HEIGHT = [4, 5, 10, 7, 6, 6]
-ALL_DESCRIPTORS = [9, 7, 5, 6, 6, 5]
+sel_start = 0
+sel_end = 1
+
+ALL_DESCRIPTORS_WIDTH = [3, 4, 9, 8, 8, 9][sel_start:sel_end]
+ALL_DESCRIPTORS_HEIGHT = [4, 5, 10, 7, 6, 6][sel_start:sel_end]
+ALL_DESCRIPTORS = [9, 7, 5, 6, 6, 5][sel_start:sel_end]
 
 NR_CHARACTER_PHOTOS = 1000
 

@@ -6,7 +6,7 @@ class Parameters:
         self.base_dir = "../"
         self.dir_pos_examples = positive_dir
         self.dir_neg_examples = NEGATIVE_DIR
-        self.overlap = 0.3
+        self.overlap = 0.8
 
         # self.dir_test_examples = os.path.join(VALIDATION_DIR, "validare")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
         # self.path_annotations = os.path.join(VALIDATION_DIR, "task1_gt_validare.txt")
