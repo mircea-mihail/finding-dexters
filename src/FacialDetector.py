@@ -11,6 +11,7 @@ from copy import deepcopy
 import timeit
 from skimage.feature import hog
 
+from visualisation import *
 
 class FacialDetector:
     def __init__(self, params:Parameters):
@@ -143,8 +144,8 @@ class FacialDetector:
         box_a_area = (bbox_a[2] - bbox_a[0] + 1) * (bbox_a[3] - bbox_a[1] + 1)
         box_b_area = (bbox_b[2] - bbox_b[0] + 1) * (bbox_b[3] - bbox_b[1] + 1)
 
-        if float(box_a_area + box_b_area - inter_area) == 0:
-           return 0
+        # if float(box_a_area + box_b_area - inter_area) == 0:
+        #    return 0
 
         iou = inter_area / float(box_a_area + box_b_area - inter_area)
 
@@ -216,15 +217,15 @@ class FacialDetector:
         # sizes_to_try = [1.0, 0.6, 0.3]
 
         for i in range(num_test_images):
+            image_detections = []
+            image_scores = []
+
             for size in sizes_to_try:
                 start_time = timeit.default_timer()
                 print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
                 img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
                 img = cv.resize(img, (0, 0), fx=size, fy=size)
                 # TODO: completati codul functiei in continuare
-
-                image_detections = []
-                image_scores = []
 
                 hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
                             cells_per_block=(2, 2), feature_vector=False)
@@ -242,29 +243,32 @@ class FacialDetector:
                         descr = hog_descriptor[y:y+num_cell_rows, x:x+num_cell_cols].flatten()
                         score = np.dot(descr, w)[0]+bias
                         if score > self.params.threshold:
-                            x_min = float(x * self.params.hog_cell_width / size)
-                            y_min = float(y * self.params.hog_cell_height / size)
-                            x_max = float((x * self.params.hog_cell_width + self.params.window_width) / size)
-                            y_max = float((y * self.params.hog_cell_height + self.params.window_height) / size)
-                            
+                            x_min = int(round(x * self.params.hog_cell_width / size))
+                            y_min = int(round(y * self.params.hog_cell_height / size))
+                            x_max = int(round((x * self.params.hog_cell_width + self.params.window_width) / size))
+                            y_max = int(round((y * self.params.hog_cell_height + self.params.window_height) / size))
+                            if(x_max - x_min != y_max - y_min):
+                                print("\n\nYOOO", [int(x_min), int(y_min), int(x_max), int(y_max)], "res", size)
+                                print(x_max - x_min, "!=", y_max - y_min)
+                           
                             image_detections.append([int(x_min), int(y_min), int(x_max), int(y_max)])
                             image_scores.append(score)
-                            
-                if len(image_scores) > 0:
-                    image_detections, image_scores = self.non_maximal_suppression(np.array(image_detections), np.array(image_scores), img.shape)
-                if len(image_scores) > 0:
-                    if detections is None:
-                        detections = image_detections
-                    else:
-                        detections = np.concatenate((detections, image_detections))
+                                
+            if len(image_scores) > 0:
+                image_detections, image_scores = self.non_maximal_suppression(np.array(image_detections), np.array(image_scores), img.shape)
+            if len(image_scores) > 0:
+                if detections is None:
+                    detections = image_detections
+                else:
+                    detections = np.concatenate((detections, image_detections))
 
-                    scores = np.append(scores, image_scores)
-                    image_names = [ntpath.basename(test_files[i]) for _ in range(len(image_scores))]
-                    file_names = np.append(file_names, image_names)
+                scores = np.append(scores, image_scores)
+                image_names = [ntpath.basename(test_files[i]) for _ in range(len(image_scores))]
+                file_names = np.append(file_names, image_names)
 
-                end_time = timeit.default_timer()
-                print('Timpul de procesarea al imaginii de testare %d/%d este %f sec.'
-                    % (i, num_test_images, end_time - start_time))
+            end_time = timeit.default_timer()
+            print('Timpul de procesarea al imaginii de testare %d/%d este %f sec.'
+                % (i, num_test_images, end_time - start_time))
 
         return detections, scores, file_names
 
