@@ -68,17 +68,44 @@ def build_unknown_positives():
         img_idx += 1
 
 def build_all_square_positives():
-    img_idx = 0
+    img_idx = {}
+    for i in range(len(ALL_DESCRIPTORS)):
+        img_idx[f"{ALL_DESCRIPTORS_WIDTH[i]}X{ALL_DESCRIPTORS_HEIGHT[i]}"] = 0
+
     for character in CHARACTERS:
         rows = get_character_rows(character)
         for row in rows:
             img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, row[6]), row[0]))
             width = get_width(row)
-            height = int(width / all.xy_ratio)
+            height = get_height(row)
+            ratio = width/height
+
+            smallest_error = 10000
+            smallest_err_idx = -1
+            for i in range(len(ALL_DESCRIPTORS)):
+                current_error = abs(ALL_DESCRIPTORS_WIDTH[i]/ALL_DESCRIPTORS_HEIGHT[i] - ratio) 
+                if current_error < smallest_error:
+                    smallest_error = current_error
+                    smallest_err_idx = i
+            
+            height = int(width * ALL_DESCRIPTORS_HEIGHT[smallest_err_idx] / ALL_DESCRIPTORS_WIDTH[smallest_err_idx])
+            ratio_name = f"{ALL_DESCRIPTORS_WIDTH[smallest_err_idx]}X{ALL_DESCRIPTORS_HEIGHT[smallest_err_idx]}"
+
             trimmed = img[row[2]:row[2]+height, row[1]:row[3]]
-            downscaled = cv.resize(trimmed, (all.width, all.height))
-            cv.imwrite(os.path.join(os.path.join(FACES_DIR, all.face_dir), f"{img_idx:04d}.png"), downscaled)
-            img_idx += 1
+            downscaled = cv.resize(trimmed, 
+                                   (ALL_DESCRIPTORS_WIDTH[smallest_err_idx] * ALL_DESCRIPTORS[smallest_err_idx],
+                                    ALL_DESCRIPTORS_HEIGHT[smallest_err_idx] * ALL_DESCRIPTORS[smallest_err_idx]
+                                    ))
+            all_faces_dir = os.path.join(FACES_DIR, ALL_FACES_DIR)
+            current_size_dir = os.path.join(all_faces_dir, ratio_name)
+
+            if not os.path.exists(all_faces_dir):
+                os.makedirs(all_faces_dir)
+            if not os.path.exists(current_size_dir):
+                os.makedirs(current_size_dir)
+
+            cv.imwrite(os.path.join(current_size_dir,f"{img_idx[ratio_name]:04d}.png"), downscaled)
+            img_idx[ratio_name] += 1
 
 def build_positives():
     build_deedee_positives()

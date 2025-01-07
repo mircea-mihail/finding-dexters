@@ -18,14 +18,15 @@ class FacialDetector:
         self.params = params
         self.best_model = None
 
-    def get_positive_descriptors(self):
+    def get_positive_descriptors(self, ratio_idx):
         # in aceasta functie calculam descriptorii pozitivi
         # vom returna un numpy array de dimensiuni NXD
         # unde N - numar exemplelor pozitive
         # iar D - dimensiunea descriptorului
         # D = (params.dim_window/params.dim_hog_cell - 1) ^ 2 * params.dim_descriptor_cell (fetele sunt patrate)
 
-        images_path = os.path.join(self.params.dir_pos_examples, '*.png')
+        images_path = os.path.join(os.path.join(self.params.dir_pos_examples, self.params.positive_dir_names[ratio_idx]), '*.png')
+        print(images_path)
         files = glob.glob(images_path)
         num_images = len(files)
         positive_descriptors = []
@@ -34,12 +35,12 @@ class FacialDetector:
             # print('processing positive example %d...' % i)
             img = cv.imread(files[i], cv.IMREAD_GRAYSCALE)
             # TODO: sterge
-            features = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
+            features = hog(img, pixels_per_cell=(self.params.hog_cell_heights[ratio_idx], self.params.hog_cell_widths[ratio_idx]),
                            cells_per_block=(2, 2), feature_vector=True)
 
             positive_descriptors.append(features)
             if self.params.use_flip_images:
-                features = hog(np.fliplr(img), pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
+                features = hog(np.fliplr(img), pixels_per_cell=(self.params.hog_cell_heights[ratio_idx], self.params.hog_cell_widths[ratio_idx]),
                                cells_per_block=(2, 2), feature_vector=True)
                 positive_descriptors.append(features)
 
@@ -58,17 +59,12 @@ class FacialDetector:
         images_path = os.path.join(self.params.dir_neg_examples, '*.png')
         files = glob.glob(images_path)
         num_images = len(files)
-        num_negative_per_image = self.params.number_negative_examples // num_images
+
         negative_descriptors = []
         print('computing negative descriptors for %d negative images' % num_images)
         for i in range(num_images):
             # print('Procesam exemplul negativ numarul %d...' % i)
             img = cv.imread(files[i], cv.IMREAD_GRAYSCALE)
-            # TODO: completati codul functiei in continuare
-            # num_rows = img.shape[0]
-            # num_cols = img.shape[1]
-            # x = np.random.randint(low=0, high=num_cols - self.params.dim_window, size=num_negative_per_image)
-            # y = np.random.randint(low=0, high=num_rows - self.params.dim_window, size=num_negative_per_image)
 
             neg_height = img.shape[0]
             neg_width = img.shape[1]
