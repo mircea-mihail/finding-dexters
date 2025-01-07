@@ -6,8 +6,8 @@ class Parameters:
         self.base_dir = "../"
         self.dir_pos_examples = BIG_SET_DIR 
         self.dir_neg_examples = NEGATIVE_DIR
-        self.dir_test_examples = os.path.join(VALIDATION_DIR, "validare")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
-        self.path_annotations = os.path.join(VALIDATION_DIR, "task1_gt_validare.txt")
+        self.dir_test_examples = os.path.join(VALIDATION_DIR, "validare_20")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
+        self.path_annotations = os.path.join(VALIDATION_DIR, "task1_gt_validare_20.txt")
         self.dir_save_files = os.path.join(self.base_dir, 'saved_files')
         if not os.path.exists(self.dir_save_files):
             os.makedirs(self.dir_save_files)

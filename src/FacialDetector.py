@@ -143,6 +143,9 @@ class FacialDetector:
         box_a_area = (bbox_a[2] - bbox_a[0] + 1) * (bbox_a[3] - bbox_a[1] + 1)
         box_b_area = (bbox_b[2] - bbox_b[0] + 1) * (bbox_b[3] - bbox_b[1] + 1)
 
+        if float(box_a_area + box_b_area - inter_area) == 0:
+           return 0
+
         iou = inter_area / float(box_a_area + box_b_area - inter_area)
 
         return iou
@@ -208,54 +211,60 @@ class FacialDetector:
         w = self.best_model.coef_.T
         bias = self.best_model.intercept_[0]
         num_test_images = len(test_files)
+
+        sizes_to_try = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        # sizes_to_try = [1.0, 0.6, 0.3]
+
         for i in range(num_test_images):
-            start_time = timeit.default_timer()
-            print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
-            img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
-            # TODO: completati codul functiei in continuare
+            for size in sizes_to_try:
+                start_time = timeit.default_timer()
+                print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
+                img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
+                img = cv.resize(img, (0, 0), fx=size, fy=size)
+                # TODO: completati codul functiei in continuare
 
-            image_detections = []
-            image_scores = []
+                image_detections = []
+                image_scores = []
 
-            hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
-                           cells_per_block=(2, 2), feature_vector=False)
+                hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_height, self.params.hog_cell_width),
+                            cells_per_block=(2, 2), feature_vector=False)
 
-            num_rows = img.shape[0]//self.params.hog_cell_height - 1 # nu vreau sa ajung pe ultima celula
-            num_cols = img.shape[1]//self.params.hog_cell_width - 1
+                num_rows = img.shape[0]//self.params.hog_cell_height - 1 # nu vreau sa ajung pe ultima celula
+                num_cols = img.shape[1]//self.params.hog_cell_width - 1
 
-            #calculez din cate in cate celule sar
-            num_cell_rows = self.params.window_height // self.params.hog_cell_height- 1
-            num_cell_cols = self.params.window_width // self.params.hog_cell_width - 1
+                #calculez din cate in cate celule sar
+                num_cell_rows = self.params.window_height // self.params.hog_cell_height- 1
+                num_cell_cols = self.params.window_width // self.params.hog_cell_width - 1
 
-            for y in range(0, num_rows - num_cell_rows):
-                for x in range(0, num_cols - num_cell_cols):
-                    # e in forma matriceala (modelul stie doar flat) asa ca fac flatten
-                    descr = hog_descriptor[y:y+num_cell_rows, x:x+num_cell_cols].flatten()
-                    score = np.dot(descr, w)[0]+bias
-                    if score > self.params.threshold:
-                        x_min = int(x * self.params.hog_cell_width)
-                        y_min = int(y * self.params.hog_cell_height)
-                        x_max = int(x * self.params.hog_cell_width + self.params.window_width)
-                        y_max = int(y * self.params.hog_cell_height + self.params.window_height)
-                        
-                        image_detections.append([x_min, y_min, x_max, y_max])
-                        image_scores.append(score)
-                        
-            if len(image_scores) > 0:
-                image_detections, image_scores = self.non_maximal_suppression(np.array(image_detections), np.array(image_scores), img.shape)
-            if len(image_scores) > 0:
-                if detections is None:
-                    detections = image_detections
-                else:
-                    detections = np.concatenate((detections, image_detections))
+                for y in range(0, num_rows - num_cell_rows):
+                    for x in range(0, num_cols - num_cell_cols):
+                        # e in forma matriceala (modelul stie doar flat) asa ca fac flatten
+                        descr = hog_descriptor[y:y+num_cell_rows, x:x+num_cell_cols].flatten()
+                        score = np.dot(descr, w)[0]+bias
+                        if score > self.params.threshold:
+                            x_min = float(x * self.params.hog_cell_width / size)
+                            y_min = float(y * self.params.hog_cell_height / size)
+                            x_max = float((x * self.params.hog_cell_width + self.params.window_width) / size)
+                            y_max = float((y * self.params.hog_cell_height + self.params.window_height) / size)
+                            
+                            image_detections.append([int(x_min), int(y_min), int(x_max), int(y_max)])
+                            image_scores.append(score)
+                            
+                if len(image_scores) > 0:
+                    image_detections, image_scores = self.non_maximal_suppression(np.array(image_detections), np.array(image_scores), img.shape)
+                if len(image_scores) > 0:
+                    if detections is None:
+                        detections = image_detections
+                    else:
+                        detections = np.concatenate((detections, image_detections))
 
-                scores = np.append(scores, image_scores)
-                image_names = [ntpath.basename(test_files[i]) for _ in range(len(image_scores))]
-                file_names = np.append(file_names, image_names)
+                    scores = np.append(scores, image_scores)
+                    image_names = [ntpath.basename(test_files[i]) for _ in range(len(image_scores))]
+                    file_names = np.append(file_names, image_names)
 
-            end_time = timeit.default_timer()
-            print('Timpul de procesarea al imaginii de testare %d/%d este %f sec.'
-                  % (i, num_test_images, end_time - start_time))
+                end_time = timeit.default_timer()
+                print('Timpul de procesarea al imaginii de testare %d/%d este %f sec.'
+                    % (i, num_test_images, end_time - start_time))
 
         return detections, scores, file_names
 
