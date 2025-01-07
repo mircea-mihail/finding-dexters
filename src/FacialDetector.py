@@ -89,9 +89,9 @@ class FacialDetector:
         return negative_descriptors
 
     def train_classifier(self, training_examples, train_labels):
-        svm_file_name = os.path.join(self.params.dir_save_files, 'best_model_%d_%d_%d_%d' %
-                                     (self.params.hog_cell_width, self.params.hog_cell_height, self.params.number_negative_examples,
-                                      self.params.number_positive_examples))
+        svm_file_name = os.path.join(self.params.dir_save_files, 'best_model_%dX%d_%d_%d_%d' %
+                                     (self.params.hog_cell_width, self.params.hog_cell_height, self.params.descriptors,
+                                      self.params.number_negative_examples, self.params.number_positive_examples))
         if os.path.exists(svm_file_name):
             self.best_model = pickle.load(open(svm_file_name, 'rb'))
             return
@@ -217,12 +217,12 @@ class FacialDetector:
         # sizes_to_try = [1.0, 0.6, 0.3]
 
         for i in range(num_test_images):
+            print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
+            start_time = timeit.default_timer()
             image_detections = []
             image_scores = []
 
             for size in sizes_to_try:
-                start_time = timeit.default_timer()
-                print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
                 img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
                 img = cv.resize(img, (0, 0), fx=size, fy=size)
                 # TODO: completati codul functiei in continuare
@@ -247,9 +247,6 @@ class FacialDetector:
                             y_min = int(round(y * self.params.hog_cell_height / size))
                             x_max = int(round((x * self.params.hog_cell_width + self.params.window_width) / size))
                             y_max = int(round((y * self.params.hog_cell_height + self.params.window_height) / size))
-                            if(x_max - x_min != y_max - y_min):
-                                print("\n\nYOOO", [int(x_min), int(y_min), int(x_max), int(y_max)], "res", size)
-                                print(x_max - x_min, "!=", y_max - y_min)
                            
                             image_detections.append([int(x_min), int(y_min), int(x_max), int(y_max)])
                             image_scores.append(score)

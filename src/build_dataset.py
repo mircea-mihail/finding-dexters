@@ -134,9 +134,10 @@ def generate_negative_rectangle(rows, character_dir, min_variance):
 def build_negatives():
     success = 0
     all = 0
-    min_variance = 0
+    variances_to_get = np.arange(0, AVG_FACE_VARIANCE * 3, AVG_FACE_VARIANCE * 3 / 12)
+    print(variances_to_get)
 
-    for _ in range(4):
+    for min_variance in variances_to_get:
         for character in CHARACTERS[:4]:
             for i in range(NR_CHARACTER_PHOTOS):
                 rows = get_photo_rows(character, f"{i+1:04d}.jpg")
