@@ -4,6 +4,7 @@ TRAIN_DIR = "../antrenare"
 
 FACES_DIR = os.path.join(TRAIN_DIR, "faces")
 NEGATIVE_DIR = os.path.join(TRAIN_DIR, "negatives")
+HARD_MINED_DIR = os.path.join(TRAIN_DIR, "hard_mined_negatives")
 IMPORTANT_FILES_DIR = "../important_files"
 SMALL_SET_DIR = os.path.join(FACES_DIR, "small_set")
 BIG_SET_DIR = os.path.join(FACES_DIR, "all")
@@ -14,12 +15,20 @@ ALL_FACES_DIR = "all/"
 CHARACTERS = ["dexter", "deedee", "dad", "mom", "unknown"]
 SHAPES_IN_ALL = 6
 
-sel_start = 0
-sel_end = 1
+# sel_start = 2
+# sel_end = 3
+# ALL_DESCRIPTORS_WIDTH = [4, 9, 8, 8, 9][sel_start:sel_end]
+# ALL_DESCRIPTORS_HEIGHT = [5, 10, 7, 6, 6][sel_start:sel_end]
+# ALL_DESCRIPTORS = [7, 5, 6, 6, 5][sel_start:sel_end]
 
-ALL_DESCRIPTORS_WIDTH = [3, 4, 9, 8, 8, 9][sel_start:sel_end]
-ALL_DESCRIPTORS_HEIGHT = [4, 5, 10, 7, 6, 6][sel_start:sel_end]
-ALL_DESCRIPTORS = [9, 7, 5, 6, 6, 5][sel_start:sel_end]
+ALL_DESCRIPTORS_WIDTH = [4, 9, 8, 8, 9]
+ALL_DESCRIPTORS_HEIGHT = [5, 10, 7, 6, 6]
+ALL_DESCRIPTORS = [7, 5, 6, 6, 5]
+
+
+# ALL_DESCRIPTORS_WIDTH = [3, 4, 9, 8, 8, 9]
+# ALL_DESCRIPTORS_HEIGHT = [4, 5, 10, 7, 6, 6]
+# ALL_DESCRIPTORS = [9, 7, 5, 6, 6, 5]
 
 NR_CHARACTER_PHOTOS = 1000
 
@@ -30,3 +39,6 @@ LOWEST_FACE_VARIANCE = 790
 AVG_FACE_VARIANCE = 4700
 
 RANDOM_IMG_GEN_TRIES = 10
+
+CELLS_PER_BLOCK = (2, 2)
+MEDIAN_SIZE = 3

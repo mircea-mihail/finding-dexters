@@ -6,13 +6,17 @@ class Parameters:
         self.base_dir = "../"
         self.dir_pos_examples = positive_dir
         self.dir_neg_examples = NEGATIVE_DIR
-        self.overlap = 0.8
+        self.dir_hard_mined = HARD_MINED_DIR
+        self.overlap = 0.1
+
+        # self.dir_test_examples = os.path.join(TRAIN_DIR, "dad")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
+        # self.path_annotations = os.path.join(TRAIN_DIR, "dad_annotations.txt")
 
         # self.dir_test_examples = os.path.join(VALIDATION_DIR, "validare")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
         # self.path_annotations = os.path.join(VALIDATION_DIR, "task1_gt_validare.txt")
  
-        self.dir_test_examples = os.path.join(VALIDATION_DIR, "validare_20")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
-        self.path_annotations = os.path.join(VALIDATION_DIR, "task1_gt_validare_20.txt")
+        self.dir_test_examples = os.path.join(VALIDATION_DIR, "validare")# 'exempleTest/CursVA'   'exempleTest/CMU+MIT'
+        self.path_annotations = os.path.join(VALIDATION_DIR, "task1_gt_validare.txt")
         self.dir_save_files = os.path.join(self.base_dir, 'saved_files')
         if not os.path.exists(self.dir_save_files):
             os.makedirs(self.dir_save_files)
@@ -34,5 +38,3 @@ class Parameters:
         self.has_annotations = False
         self.threshold = 0
         
-        # try? 
-        #   cells_per_block = (3, 3)

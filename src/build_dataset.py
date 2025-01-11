@@ -76,6 +76,7 @@ def build_all_square_positives():
         rows = get_character_rows(character)
         for row in rows:
             img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, row[6]), row[0]))
+
             width = get_width(row)
             height = get_height(row)
             ratio = width/height
@@ -103,7 +104,7 @@ def build_all_square_positives():
                 os.makedirs(all_faces_dir)
             if not os.path.exists(current_size_dir):
                 os.makedirs(current_size_dir)
-
+            
             cv.imwrite(os.path.join(current_size_dir,f"{img_idx[ratio_name]:04d}.png"), downscaled)
             img_idx[ratio_name] += 1
 

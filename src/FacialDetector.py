@@ -34,14 +34,15 @@ class FacialDetector:
         for i in range(num_images):
             # print('processing positive example %d...' % i)
             img = cv.imread(files[i], cv.IMREAD_GRAYSCALE)
+            
             # TODO: sterge
             features = hog(img, pixels_per_cell=(self.params.hog_cell_heights[ratio_idx], self.params.hog_cell_widths[ratio_idx]),
-                           cells_per_block=(2, 2), feature_vector=True)
+                           cells_per_block=CELLS_PER_BLOCK, feature_vector=True)
 
             positive_descriptors.append(features)
             if self.params.use_flip_images:
                 features = hog(np.fliplr(img), pixels_per_cell=(self.params.hog_cell_heights[ratio_idx], self.params.hog_cell_widths[ratio_idx]),
-                               cells_per_block=(2, 2), feature_vector=True)
+                               cells_per_block=CELLS_PER_BLOCK, feature_vector=True)
                 positive_descriptors.append(features)
 
         positive_descriptors = np.array(positive_descriptors)
@@ -57,7 +58,10 @@ class FacialDetector:
         # patch-uri de dimensiune 36x36 pe care le vom considera exemple negative
 
         images_path = os.path.join(self.params.dir_neg_examples, '*.png')
-        files = glob.glob(images_path)
+        hard_mined_path = os.path.join(self.params.dir_hard_mined, "*.png")
+        random_files = glob.glob(images_path)
+        hard_mined_files = glob.glob(hard_mined_path)
+        files = hard_mined_files + random_files
         num_images = len(files)
 
         negative_descriptors = []
@@ -79,7 +83,7 @@ class FacialDetector:
             patch = cv.resize(patch, (self.params.window_widths[ratio_idx], self.params.window_heights[ratio_idx]))
 
             descr = hog(patch, pixels_per_cell=(self.params.hog_cell_heights[ratio_idx], self.params.hog_cell_widths[ratio_idx]),
-                        cells_per_block=(2, 2), feature_vector=False)
+                        cells_per_block=CELLS_PER_BLOCK, feature_vector=False)
             negative_descriptors.append(descr.flatten())
 
         negative_descriptors = np.array(negative_descriptors)
@@ -141,8 +145,8 @@ class FacialDetector:
         box_a_area = (bbox_a[2] - bbox_a[0] + 1) * (bbox_a[3] - bbox_a[1] + 1)
         box_b_area = (bbox_b[2] - bbox_b[0] + 1) * (bbox_b[3] - bbox_b[1] + 1)
 
-        # if float(box_a_area + box_b_area - inter_area) == 0:
-        #    return 0
+        if float(box_a_area + box_b_area - inter_area) == 0:
+           return 0
 
         iou = inter_area / float(box_a_area + box_b_area - inter_area)
 
@@ -210,8 +214,8 @@ class FacialDetector:
         biases = [best_model.intercept_[0] for best_model in self.best_models]
         num_test_images = len(test_files)
 
-        sizes_to_try = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-        # sizes_to_try = [1.0, 0.6, 0.3]
+        sizes_to_try = np.linspace(0.05, 1, 20) 
+        # sizes_to_try = np.linspace(0.2, 1, 5) 
 
         for i in range(num_test_images):
             print('Procesam imaginea de testare %d/%d..' % (i, num_test_images))
@@ -222,11 +226,13 @@ class FacialDetector:
             for size in sizes_to_try:
                 for shape_idx in range(len(self.params.descriptors)):
                     img = cv.imread(test_files[i], cv.IMREAD_GRAYSCALE)
+                    img = cv.resize(img, (STD_IMG_SHAPE[1], STD_IMG_SHAPE[0]))
+
                     img = cv.resize(img, (0, 0), fx=size, fy=size)
                     # TODO: completati codul functiei in continuare
 
                     hog_descriptor = hog(img, pixels_per_cell=(self.params.hog_cell_heights[shape_idx], self.params.hog_cell_widths[shape_idx]),
-                                cells_per_block=(2, 2), feature_vector=False)
+                                cells_per_block=CELLS_PER_BLOCK, feature_vector=False)
 
                     num_rows = img.shape[0]//self.params.hog_cell_heights[shape_idx] - 1 # nu vreau sa ajung pe ultima celula
                     num_cols = img.shape[1]//self.params.hog_cell_widths[shape_idx] - 1
@@ -281,7 +287,7 @@ class FacialDetector:
     def eval_detections(self, detections, scores, file_names):
         ground_truth_file = np.loadtxt(self.params.path_annotations, dtype='str')
         ground_truth_file_names = np.array(ground_truth_file[:, 0])
-        ground_truth_detections = np.array(ground_truth_file[:, 1:], np.int32)
+        ground_truth_detections = np.array(ground_truth_file[:, 1:5], np.int32)
 
         num_gt_detections = len(ground_truth_detections)  # numar total de adevarat pozitive
         gt_exists_detection = np.zeros(num_gt_detections)
@@ -332,3 +338,42 @@ class FacialDetector:
         plt.title('Average precision %.6f' % average_precision)
         plt.savefig(os.path.join(self.params.dir_save_files, 'precizie_medie.png'))
         plt.show()
+
+    def hard_mine_detections(self, detections, scores, file_names):
+        mined_idx = 0
+
+        ground_truth_file = np.loadtxt(self.params.path_annotations, dtype='str')
+        ground_truth_file_names = np.array(ground_truth_file[:, 0])
+        ground_truth_detections = np.array(ground_truth_file[:, 1:5], np.int32)
+
+        num_gt_detections = len(ground_truth_detections)  # numar total de adevarat pozitive
+        gt_exists_detection = np.zeros(num_gt_detections)
+        # sorteazam detectiile dupa scorul lor
+        sorted_indices = np.argsort(scores)[::-1]
+        file_names = file_names[sorted_indices]
+        scores = scores[sorted_indices]
+        detections = detections[sorted_indices]
+
+        num_detections = len(detections)
+        false_positive = np.zeros(num_detections)
+
+        for detection_idx in range(num_detections):
+            indices_detections_on_image = np.where(ground_truth_file_names == file_names[detection_idx])[0]
+
+            gt_detections_on_image = ground_truth_detections[indices_detections_on_image]
+            bbox = detections[detection_idx]
+            max_overlap = -1
+            index_max_overlap_bbox = -1
+            for gt_idx, gt_bbox in enumerate(gt_detections_on_image):
+                overlap = self.intersection_over_union(bbox, gt_bbox)
+                if overlap > max_overlap:
+                    max_overlap = overlap
+                    index_max_overlap_bbox = indices_detections_on_image[gt_idx]
+
+            # clasifica o detectie ca fiind adevarat pozitiva / fals pozitiva
+            if max_overlap <= 0.3:
+                img = cv.imread(os.path.join(self.params.dir_test_examples, file_names[detection_idx]))
+                bounds = detections[detection_idx]
+                false_detection = img[bounds[1]:bounds[3], bounds[0]:bounds[2]]
+                cv.imwrite(os.path.join(self.params.dir_hard_mined, f"{mined_idx}.png"), false_detection)
+                mined_idx += 1
