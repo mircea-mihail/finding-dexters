@@ -40,7 +40,6 @@ def print_square_info():
             avg_height += height
             items += 1
 
-
     print("avg width", round(avg_width/items), "and height", round(avg_height/items), "and avg_area", round(avg_width*avg_height/items/items))
 
     # Plot the data in each subplot individually
@@ -68,20 +67,67 @@ def inspect_photos():
         for i in range(NR_CHARACTER_PHOTOS):
             read_photo(i, character)    
 
-def get_avg_variance():
+def get_stats():
     all = 0
     avg_var = 0
     lowest_var = np.Infinity
+    hue_dict = {}
+    saturation_dict = {}
+    value_dict = {}
     for character in CHARACTERS:
         face_names = os.listdir(os.path.join(FACES_DIR, character))
         for face_name in face_names:
             face = cv.imread(os.path.join(os.path.join(FACES_DIR, character), face_name))
+            if face is None:
+                break
+            hsv_face = cv.cvtColor(face, cv.COLOR_BGR2HSV)
+
+            # Split the HSV channels
+            h, s, v = cv.split(hsv_face)
+            # Calculate the average values for each channel
+            hue = int(np.mean(h))
+            saturation = int(np.mean(s))
+            value = int(np.mean(v))
+
+            if saturation in saturation_dict:
+                saturation_dict[saturation] += 1
+            else:
+                saturation_dict[saturation] = 1
+
+            if value in value_dict:
+                value_dict[value] += 1
+            else:
+                value_dict[value] = 1
+
+            if hue in hue_dict:
+                hue_dict[hue] += 1
+            else:
+                hue_dict[hue] = 1
+
             var = np.var(face)
             avg_var += var
             all += 1
             if lowest_var > var:
                 lowest_var = var
-    
+
+    for key, val in value_dict.items():
+        plt.scatter(key, val, c='purple')
+    plt.title("values")
+    plt.show()
+     
+    for key, val in saturation_dict.items():
+        plt.scatter(key, val, c='purple')
+    plt.title("saturations")
+    plt.show()
+     
+    idx = 0
+    for key, val in hue_dict.items():
+        plt.scatter(key, val, c='purple')
+    plt.title("hues")
+    plt.show()
+     
+     
+
     print(f"lowest var: {lowest_var}, avg_var: {avg_var/all}, photos checked: {all}")
 
 #from the lab

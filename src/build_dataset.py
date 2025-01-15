@@ -67,12 +67,17 @@ def build_unknown_positives():
         cv.imwrite(os.path.join(os.path.join(FACES_DIR, unknown.face_dir), f"{img_idx:04d}.png"), downscaled)
         img_idx += 1
 
-def build_all_square_positives():
+def build_positives(descriptors, widths, heights, character_dir_name):
     img_idx = {}
-    for i in range(len(ALL_DESCRIPTORS)):
-        img_idx[f"{ALL_DESCRIPTORS_WIDTH[i]}X{ALL_DESCRIPTORS_HEIGHT[i]}"] = 0
+    for i in range(len(descriptors)):
+        img_idx[f"{widths[i]}X{heights[i]}"] = 0
+    
+    if character_dir_name == 'all':
+        characters = CHARACTERS
+    else:
+        characters = [character_dir_name]
 
-    for character in CHARACTERS:
+    for character in characters:
         rows = get_character_rows(character)
         for row in rows:
             img = cv.imread(os.path.join(os.path.join(TRAIN_DIR, row[6]), row[0]))
@@ -83,37 +88,30 @@ def build_all_square_positives():
 
             smallest_error = 10000
             smallest_err_idx = -1
-            for i in range(len(ALL_DESCRIPTORS)):
-                current_error = abs(ALL_DESCRIPTORS_WIDTH[i]/ALL_DESCRIPTORS_HEIGHT[i] - ratio) 
+            for i in range(len(descriptors)):
+                current_error = abs(widths[i]/heights[i] - ratio) 
                 if current_error < smallest_error:
                     smallest_error = current_error
                     smallest_err_idx = i
             
-            height = int(width * ALL_DESCRIPTORS_HEIGHT[smallest_err_idx] / ALL_DESCRIPTORS_WIDTH[smallest_err_idx])
-            ratio_name = f"{ALL_DESCRIPTORS_WIDTH[smallest_err_idx]}X{ALL_DESCRIPTORS_HEIGHT[smallest_err_idx]}"
+            height = int(width * heights[smallest_err_idx] / widths[smallest_err_idx])
+            ratio_name = f"{widths[smallest_err_idx]}X{heights[smallest_err_idx]}"
 
             trimmed = img[row[2]:row[2]+height, row[1]:row[3]]
             downscaled = cv.resize(trimmed, 
-                                   (ALL_DESCRIPTORS_WIDTH[smallest_err_idx] * ALL_DESCRIPTORS[smallest_err_idx],
-                                    ALL_DESCRIPTORS_HEIGHT[smallest_err_idx] * ALL_DESCRIPTORS[smallest_err_idx]
+                                   (widths[smallest_err_idx] * descriptors[smallest_err_idx],
+                                    heights[smallest_err_idx] * descriptors[smallest_err_idx]
                                     ))
-            all_faces_dir = os.path.join(FACES_DIR, ALL_FACES_DIR)
-            current_size_dir = os.path.join(all_faces_dir, ratio_name)
+            faces_dir = os.path.join(FACES_DIR, character_dir_name)
+            current_size_dir = os.path.join(faces_dir, ratio_name)
 
-            if not os.path.exists(all_faces_dir):
-                os.makedirs(all_faces_dir)
+            if not os.path.exists(faces_dir):
+                os.makedirs(faces_dir)
             if not os.path.exists(current_size_dir):
                 os.makedirs(current_size_dir)
             
             cv.imwrite(os.path.join(current_size_dir,f"{img_idx[ratio_name]:04d}.png"), downscaled)
             img_idx[ratio_name] += 1
-
-def build_positives():
-    build_deedee_positives()
-    build_dexter_positives()
-    build_dad_positives()
-    build_mom_positives()
-    build_unknown_positives()
 
 def get_small_dataset():
     file_nr=  0
